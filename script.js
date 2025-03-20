@@ -12,11 +12,43 @@ const totalValueSpan = document.getElementById('totalValue');
 const noItemsDiv = document.getElementById('noItems');
 const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toastMessage');
+const unitPriceInput = document.getElementById('unitPrice');
+const quantityInput = document.getElementById('quantity');
 
 // This is for the notification
 const notification = document.createElement('div');
 notification.className = 'notification';
 document.body.appendChild(notification);
+
+// Add validation for unit price input
+unitPriceInput.addEventListener('input', function(e) {
+    // Remove any non-numeric characters except decimal point
+    let value = this.value.replace(/[^0-9.]/g, '');
+    
+    // Ensure only one decimal point
+    const parts = value.split('.');
+    if (parts.length > 2) {
+        value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Limit decimal places to 2
+    if (parts.length === 2) {
+        parts[1] = parts[1].slice(0, 2);
+        value = parts.join('.');
+    }
+    
+    // Update the input value
+    this.value = value;
+});
+
+// Add validation for quantity input
+quantityInput.addEventListener('input', function(e) {
+    // Remove any non-numeric characters
+    let value = this.value.replace(/[^0-9]/g, '');
+    
+    // Update the input value
+    this.value = value;
+});
 
 // This is for the event listeners
 inventoryForm.addEventListener('submit', handleFormSubmit);
@@ -29,12 +61,21 @@ function handleFormSubmit(e) {
     e.preventDefault();
     
     const formData = new FormData(e.target);
+    const quantity = parseInt(formData.get('quantity'));
+    const unitPrice = parseFloat(formData.get('unitPrice'));
+    
+    // Validate numeric values
+    if (isNaN(quantity) || isNaN(unitPrice) || quantity <= 0 || unitPrice <= 0) {
+        showNotification('Please enter valid quantity and price values', 'error');
+        return;
+    }
+    
     const item = {
         id: Date.now(),
         itemName: formData.get('itemName'),
         description: formData.get('description'),
-        quantity: parseInt(formData.get('quantity')),
-        unitPrice: parseFloat(formData.get('unitPrice'))
+        quantity: quantity,
+        unitPrice: unitPrice
     };
     
     createItem(item);
@@ -55,11 +96,11 @@ function readItems() {
 function updateItem(id, updatedItem) {
     const index = inventory.findIndex(item => item.id === id);
     if (index !== -1) {
-     
+        // Validate the updated values
         const quantity = parseInt(updatedItem.quantity);
         const unitPrice = parseFloat(updatedItem.unitPrice);
         
-    
+        // Only update if values are valid numbers greater than 0
         if (isNaN(quantity) || isNaN(unitPrice) || quantity <= 0 || unitPrice <= 0) {
             showNotification('Please enter valid quantity and price values', 'error');
             return;
@@ -78,9 +119,39 @@ function updateItem(id, updatedItem) {
 }
 
 function deleteItem(id) {
+    const item = inventory.find(item => item.id === id);
+    if (!item) return;
+
+    // Create confirmation dialog
+    const dialog = document.createElement('div');
+    dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    dialog.innerHTML = `
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 transform transition-all">
+            <div class="text-center">
+                <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Confirm Delete</h3>
+                <p class="text-sm text-gray-500 mb-6">Are you sure you want to delete "${item.itemName}"?</p>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500" onclick="this.closest('.fixed').remove()">
+                    Cancel
+                </button>
+                <button class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500" onclick="confirmDelete(${id}, this)">
+                    Delete
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(dialog);
+}
+
+// Function to handle the actual deletion after confirmation
+function confirmDelete(id, button) {
+    const dialog = button.closest('.fixed');
     inventory = inventory.filter(item => item.id !== id);
     updateInventoryDisplay();
     showNotification('Item deleted successfully!');
+    dialog.remove();
 }
 
 // This is for the rendering of the inventory table
