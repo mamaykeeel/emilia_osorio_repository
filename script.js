@@ -148,7 +148,9 @@ function deleteItem(id) {
 // Function to handle the actual deletion after confirmation
 function confirmDelete(id, button) {
     const dialog = button.closest('.fixed');
+    console.log('Before deletion - Items:', inventory.length);
     inventory = inventory.filter(item => item.id !== id);
+    console.log('After deletion - Items:', inventory.length);
     updateInventoryDisplay();
     showNotification('Item deleted successfully!');
     dialog.remove();
@@ -160,6 +162,7 @@ function renderInventory(items = inventory) {
     
     if (items.length === 0) {
         noItemsDiv.classList.remove('hidden');
+        updateInventoryStats([]); // Update stats with empty array when no items
         return;
     }
     
@@ -190,7 +193,7 @@ function renderInventory(items = inventory) {
         inventoryTableBody.appendChild(row);
     });
     
-    updateInventoryStats();
+    updateInventoryStats(items);
 }
 
 // This is for the edit item functionality
@@ -252,6 +255,7 @@ function handleSearch(e) {
         item.description.toLowerCase().includes(searchTerm)
     );
     renderInventory(filteredItems);
+    updateInventoryStats(filteredItems);
 }
 
 // This is for the sort functionality
@@ -270,6 +274,7 @@ function handleSort(e) {
         }
     });
     renderInventory(sortedItems);
+    updateInventoryStats(sortedItems);
 }
 
 // This is for the clearing of the form
@@ -280,10 +285,12 @@ function clearForm() {
 }
 
 // This is for the updating of the inventory statistics
-function updateInventoryStats() {
-    totalItemsSpan.textContent = inventory.length;
-    const totalValue = inventory.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+function updateInventoryStats(items = inventory) {
+    console.log('Updating stats - Items:', items.length);
+    totalItemsSpan.textContent = items.length;
+    const totalValue = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
     totalValueSpan.textContent = `₱${totalValue.toFixed(2)}`;
+    console.log('Updated stats - Count:', items.length, 'Total Value:', totalValue);
 }
 
 // This is for the getting of the quantity status class
