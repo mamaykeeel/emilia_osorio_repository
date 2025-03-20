@@ -20,38 +20,38 @@ const notification = document.createElement('div');
 notification.className = 'notification';
 document.body.appendChild(notification);
 
-// Function to save inventory to localStorage
+// This is for the saving of the inventory to the localStorage
 function saveInventory() {
     localStorage.setItem('inventory', JSON.stringify(inventory));
 }
 
-// Add validation for unit price input
+// This is for the validation of the unit price input
 unitPriceInput.addEventListener('input', function(e) {
-    // Remove any non-numeric characters except decimal point
+    // This is for the removing of the non-numeric characters except the decimal point
     let value = this.value.replace(/[^0-9.]/g, '');
     
-    // Ensure only one decimal point
+    // This is for the ensuring of the only one decimal point
     const parts = value.split('.');
     if (parts.length > 2) {
         value = parts[0] + '.' + parts.slice(1).join('');
     }
     
-    // Limit decimal places to 2
+ 
     if (parts.length === 2) {
         parts[1] = parts[1].slice(0, 2);
         value = parts.join('.');
     }
     
-    // Update the input value
+    // This is for the updating of the input value
     this.value = value;
 });
 
-// Add validation for quantity input
+// This is for the validation of the quantity input
 quantityInput.addEventListener('input', function(e) {
-    // Remove any non-numeric characters
+
     let value = this.value.replace(/[^0-9]/g, '');
     
-    // Update the input value
+  
     this.value = value;
 });
 
@@ -69,7 +69,7 @@ function handleFormSubmit(e) {
     const quantity = parseInt(formData.get('quantity'));
     const unitPrice = parseFloat(formData.get('unitPrice'));
     
-    // Validate numeric values
+    // This is for the validation of the numeric values
     if (isNaN(quantity) || isNaN(unitPrice) || quantity <= 0 || unitPrice <= 0) {
         showNotification('Please enter valid quantity and price values', 'error');
         return;
@@ -83,11 +83,11 @@ function handleFormSubmit(e) {
         unitPrice: unitPrice
     };
 
-    // Show confirmation dialog
+    // This is for the showing of the add confirmation dialog
     showAddConfirmation(item);
 }
 
-// Function to show add confirmation dialog
+// This is for the showing of the add confirmation dialog
 function showAddConfirmation(item) {
     const totalValue = item.quantity * item.unitPrice;
     const dialog = document.createElement('div');
@@ -134,11 +134,11 @@ function showAddConfirmation(item) {
     document.body.appendChild(dialog);
 }
 
-// Function to handle the actual addition after confirmation
+// This is for the confirmation of the adding of the item
 function confirmAdd(id, button) {
     const dialog = button.closest('.fixed');
     
-    // Get the item data from the form
+    // This is for the getting of the item data from the form
     const formData = new FormData(inventoryForm);
     const item = {
         id: id,
@@ -148,7 +148,7 @@ function confirmAdd(id, button) {
         unitPrice: parseFloat(formData.get('unitPrice'))
     };
     
-    // Add the item
+    // This is for the adding of the item
     createItem(item);
     showNotification('Item added successfully!');
     clearForm();
@@ -158,7 +158,7 @@ function confirmAdd(id, button) {
 // This is for the CRUD operations
 function createItem(item) {
     inventory.push(item);
-    saveInventory(); // Save to localStorage
+    saveInventory(); // This is for the saving of the inventory to the localStorage
     updateInventoryDisplay();
 }
 
@@ -169,11 +169,11 @@ function readItems() {
 function updateItem(id, updatedItem) {
     const index = inventory.findIndex(item => item.id === id);
     if (index !== -1) {
-        // Validate the updated values
+        // This is for the validation of the updated values
         const quantity = parseInt(updatedItem.quantity);
         const unitPrice = parseFloat(updatedItem.unitPrice);
         
-        // Only update if values are valid numbers greater than 0
+      
         if (isNaN(quantity) || isNaN(unitPrice) || quantity <= 0 || unitPrice <= 0) {
             showNotification('Please enter valid quantity and price values', 'error');
             return;
@@ -186,7 +186,7 @@ function updateItem(id, updatedItem) {
             unitPrice: unitPrice
         };
         inventory[index] = item;
-        saveInventory(); // Save to localStorage
+        saveInventory(); // This is for the saving of the inventory to the localStorage
         updateInventoryDisplay();
         showNotification('Item updated successfully!');
     }
@@ -196,7 +196,7 @@ function deleteItem(id) {
     const item = inventory.find(item => item.id === id);
     if (!item) return;
 
-    // Create confirmation dialog
+    // This is for the confirmation dialog
     const dialog = document.createElement('div');
     dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
     dialog.innerHTML = `
@@ -286,7 +286,7 @@ function editItem(id) {
     const submitButton = inventoryForm.querySelector('button[type="submit"]');
     submitButton.innerHTML = '<i class="fas fa-save mr-2"></i>Update Item';
     
-    // Remove the old event listener
+   
     inventoryForm.removeEventListener('submit', handleFormSubmit);
     
     // This is for the adding of the event listener for the form submission
@@ -297,7 +297,6 @@ function editItem(id) {
         const quantity = parseInt(formData.get('quantity'));
         const unitPrice = parseFloat(formData.get('unitPrice'));
         
-    
         if (isNaN(quantity) || isNaN(unitPrice) || quantity <= 0 || unitPrice <= 0) {
             showNotification('Please enter valid quantity and price values', 'error');
             return;
@@ -314,7 +313,7 @@ function editItem(id) {
         updateItem(id, updatedItem);
         clearForm();
         
-      
+     
         inventoryForm.removeEventListener('submit', updateHandler);
         inventoryForm.addEventListener('submit', handleFormSubmit);
     };
@@ -377,7 +376,7 @@ function getQuantityStatusClass(quantity) {
 
 // This is for the toast notification
 function showNotification(message, type = 'success') {
-    // Create a new notification element each time
+
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.innerHTML = `
@@ -386,13 +385,13 @@ function showNotification(message, type = 'success') {
     `;
     document.body.appendChild(notification);
     
-    // Force a reflow to trigger the animation
+   
     notification.offsetHeight;
     
-    // Show the notification
+  
     setTimeout(() => notification.classList.add('show'), 10);
     
-    // Hide and remove the notification after 2 seconds
+  
     setTimeout(() => {
         notification.classList.remove('show');
         notification.classList.add('hide');
