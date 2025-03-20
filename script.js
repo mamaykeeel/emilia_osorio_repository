@@ -1,5 +1,5 @@
 // This is for the storing of the inventory items
-let inventory = [];
+let inventory = JSON.parse(localStorage.getItem('inventory')) || [];
 
 // This is for the form
 const inventoryForm = document.getElementById('inventoryForm');
@@ -19,6 +19,11 @@ const quantityInput = document.getElementById('quantity');
 const notification = document.createElement('div');
 notification.className = 'notification';
 document.body.appendChild(notification);
+
+// Function to save inventory to localStorage
+function saveInventory() {
+    localStorage.setItem('inventory', JSON.stringify(inventory));
+}
 
 // Add validation for unit price input
 unitPriceInput.addEventListener('input', function(e) {
@@ -86,6 +91,7 @@ function handleFormSubmit(e) {
 // This is for the CRUD operations
 function createItem(item) {
     inventory.push(item);
+    saveInventory(); // Save to localStorage
     updateInventoryDisplay();
 }
 
@@ -113,6 +119,7 @@ function updateItem(id, updatedItem) {
             unitPrice: unitPrice
         };
         inventory[index] = item;
+        saveInventory(); // Save to localStorage
         updateInventoryDisplay();
         showNotification('Item updated successfully!');
     }
@@ -151,6 +158,7 @@ function confirmDelete(id, button) {
     console.log('Before deletion - Items:', inventory.length);
     inventory = inventory.filter(item => item.id !== id);
     console.log('After deletion - Items:', inventory.length);
+    saveInventory(); // Save to localStorage
     updateInventoryDisplay();
     showNotification('Item deleted successfully!');
     dialog.remove();
