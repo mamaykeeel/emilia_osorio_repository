@@ -82,10 +82,77 @@ function handleFormSubmit(e) {
         quantity: quantity,
         unitPrice: unitPrice
     };
+
+    // Show confirmation dialog
+    showAddConfirmation(item);
+}
+
+// Function to show add confirmation dialog
+function showAddConfirmation(item) {
+    const totalValue = item.quantity * item.unitPrice;
+    const dialog = document.createElement('div');
+    dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    dialog.innerHTML = `
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 transform transition-all">
+            <div class="text-center mb-6">
+                <i class="fas fa-clipboard-check text-4xl text-blue-500 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Confirm Add Item</h3>
+                <p class="text-sm text-gray-500">Please review the item details before adding:</p>
+            </div>
+            <div class="space-y-3 mb-6">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Item Name:</span>
+                    <span class="font-medium">${item.itemName}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Description:</span>
+                    <span class="font-medium">${item.description}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Quantity:</span>
+                    <span class="font-medium">${item.quantity}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Unit Price:</span>
+                    <span class="font-medium">₱${item.unitPrice.toFixed(2)}</span>
+                </div>
+                <div class="flex justify-between border-t pt-2">
+                    <span class="text-gray-600">Total Value:</span>
+                    <span class="font-medium">₱${totalValue.toFixed(2)}</span>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500" onclick="this.closest('.fixed').remove()">
+                    Cancel
+                </button>
+                <button class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" onclick="confirmAdd(${item.id}, this)">
+                    Confirm Add
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(dialog);
+}
+
+// Function to handle the actual addition after confirmation
+function confirmAdd(id, button) {
+    const dialog = button.closest('.fixed');
     
+    // Get the item data from the form
+    const formData = new FormData(inventoryForm);
+    const item = {
+        id: id,
+        itemName: formData.get('itemName'),
+        description: formData.get('description'),
+        quantity: parseInt(formData.get('quantity')),
+        unitPrice: parseFloat(formData.get('unitPrice'))
+    };
+    
+    // Add the item
     createItem(item);
     showNotification('Item added successfully!');
     clearForm();
+    dialog.remove();
 }
 
 // This is for the CRUD operations
