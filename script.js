@@ -313,19 +313,24 @@ function showNotification(message, type = 'success') {
     // Create a new notification element each time
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
-    notification.textContent = message;
+    notification.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+        <span>${message}</span>
+    `;
     document.body.appendChild(notification);
     
-    // Force a reflow to ensure the animation plays
+    // Force a reflow to trigger the animation
     notification.offsetHeight;
     
-    notification.classList.add('show');
+    // Show the notification
+    setTimeout(() => notification.classList.add('show'), 10);
     
+    // Hide and remove the notification after 2 seconds
     setTimeout(() => {
         notification.classList.remove('show');
         notification.classList.add('hide');
         setTimeout(() => {
-            notification.remove(); // Remove the element from DOM after animation
+            notification.remove();
         }, 300);
     }, 2000);
 }
