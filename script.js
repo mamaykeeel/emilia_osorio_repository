@@ -7,8 +7,6 @@ const inventoryTableBody = document.getElementById('inventoryTableBody');
 const searchInput = document.getElementById('searchInput');
 const sortSelect = document.getElementById('sortSelect');
 const clearFormBtn = document.getElementById('clearForm');
-const totalItemsSpan = document.getElementById('totalItems');
-const totalValueSpan = document.getElementById('totalValue');
 const noItemsDiv = document.getElementById('noItems');
 const toast = document.getElementById('toast');
 const toastMessage = document.getElementById('toastMessage');
@@ -19,6 +17,12 @@ const quantityInput = document.getElementById('quantity');
 const notification = document.createElement('div');
 notification.className = 'notification';
 document.body.appendChild(notification);
+
+// Add these variables at the top with your other declarations
+const updateModal = document.getElementById('updateModal');
+const updateForm = document.getElementById('updateForm');
+const closeUpdateModal = document.getElementById('closeUpdateModal');
+const cancelUpdate = document.getElementById('cancelUpdate');
 
 // This is for the saving of the inventory to the localStorage
 function saveInventory() {
@@ -160,6 +164,7 @@ function createItem(item) {
     inventory.push(item);
     saveInventory(); // This is for the saving of the inventory to the localStorage
     updateInventoryDisplay();
+    updateDashboard(); // Add this to update dashboard immediately
 }
 
 function readItems() {
@@ -169,16 +174,16 @@ function readItems() {
 function updateItem(id, updatedItem) {
     const index = inventory.findIndex(item => item.id === id);
     if (index !== -1) {
-        // This is for the validation of the updated values
+        // Validate the updated values
         const quantity = parseInt(updatedItem.quantity);
         const unitPrice = parseFloat(updatedItem.unitPrice);
         
-      
         if (isNaN(quantity) || isNaN(unitPrice) || quantity <= 0 || unitPrice <= 0) {
             showNotification('Please enter valid quantity and price values', 'error');
-            return;
+            return false; // Return false to indicate update failed
         }
         
+        // If validation passes, update the item
         const item = {
             ...inventory[index],
             ...updatedItem,
@@ -186,49 +191,47 @@ function updateItem(id, updatedItem) {
             unitPrice: unitPrice
         };
         inventory[index] = item;
-        saveInventory(); // This is for the saving of the inventory to the localStorage
+        saveInventory();
         updateInventoryDisplay();
-        showNotification('Item updated successfully!');
+        updateDashboard();
+        showNotification('Item updated successfully!', 'success');
+        return true; // Return true to indicate update succeeded
     }
+    return false;
 }
 
+// Function to delete an item
 function deleteItem(id) {
     const item = inventory.find(item => item.id === id);
     if (!item) return;
 
-    // This is for the confirmation dialog
-    const dialog = document.createElement('div');
-    dialog.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-    dialog.innerHTML = `
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 transform transition-all">
-            <div class="text-center">
-                <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">Confirm Delete</h3>
-                <p class="text-sm text-gray-500 mb-6">Are you sure you want to delete "${item.itemName}"?</p>
-            </div>
-            <div class="flex justify-end space-x-3">
-                <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500" onclick="this.closest('.fixed').remove()">
-                    Cancel
-                </button>
-                <button class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500" onclick="confirmDelete(${id}, this)">
-                    Delete
-                </button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(dialog);
-}
+    Swal.fire({
+        title: 'Delete Item?',
+        text: `Are you sure you want to delete "${item.itemName}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Remove the item from inventory
+            inventory = inventory.filter(i => i.id !== id);
+            saveInventory();
+            updateInventoryDisplay();
+            updateDashboard();
 
-// Function to handle the actual deletion after confirmation
-function confirmDelete(id, button) {
-    const dialog = button.closest('.fixed');
-    console.log('Before deletion - Items:', inventory.length);
-    inventory = inventory.filter(item => item.id !== id);
-    console.log('After deletion - Items:', inventory.length);
-    saveInventory(); // Save to localStorage
-    updateInventoryDisplay();
-    showNotification('Item deleted successfully!');
-    dialog.remove();
+            // Show success message
+            Swal.fire({
+                title: 'Deleted!',
+                text: 'Item has been deleted successfully.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        }
+    });
 }
 
 // This is for the rendering of the inventory table
@@ -271,55 +274,75 @@ function renderInventory(items = inventory) {
     updateInventoryStats(items);
 }
 
-// This is for the edit item functionality
+// Function to show modal
+function showModal() {
+    updateModal.classList.remove('hidden');
+    updateModal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+}
+
+// Function to hide modal
+function hideModal() {
+    updateModal.classList.add('hidden');
+    updateModal.classList.remove('flex');
+    document.body.style.overflow = '';
+    updateForm.removeEventListener('submit', updateHandler);
+}
+
+// Update the editItem function
 function editItem(id) {
     const item = inventory.find(item => item.id === id);
     if (!item) return;
     
-    // This is for the populating of the form with the item data
-    document.getElementById('itemName').value = item.itemName;
-    document.getElementById('description').value = item.description;
-    document.getElementById('quantity').value = item.quantity;
-    document.getElementById('unitPrice').value = item.unitPrice;
+    // Populate the update form
+    document.getElementById('updateItemName').value = item.itemName;
+    document.getElementById('updateDescription').value = item.description;
+    document.getElementById('updateQuantity').value = item.quantity;
+    document.getElementById('updateUnitPrice').value = item.unitPrice;
     
-    // This is for the changing of the form submit button text
-    const submitButton = inventoryForm.querySelector('button[type="submit"]');
-    submitButton.innerHTML = '<i class="fas fa-save mr-2"></i>Update Item';
+    // Show the modal
+    showModal();
     
-   
-    inventoryForm.removeEventListener('submit', handleFormSubmit);
-    
-    // This is for the adding of the event listener for the form submission
+    // Update handler function
     const updateHandler = (e) => {
         e.preventDefault();
         
         const formData = new FormData(e.target);
-        const quantity = parseInt(formData.get('quantity'));
-        const unitPrice = parseFloat(formData.get('unitPrice'));
-        
-        if (isNaN(quantity) || isNaN(unitPrice) || quantity <= 0 || unitPrice <= 0) {
-            showNotification('Please enter valid quantity and price values', 'error');
-            return;
-        }
-        
         const updatedItem = {
             id: id,
             itemName: formData.get('itemName'),
             description: formData.get('description'),
-            quantity: quantity,
-            unitPrice: unitPrice
+            quantity: parseInt(formData.get('quantity')),
+            unitPrice: parseFloat(formData.get('unitPrice'))
         };
         
-        updateItem(id, updatedItem);
-        clearForm();
-        
-     
-        inventoryForm.removeEventListener('submit', updateHandler);
-        inventoryForm.addEventListener('submit', handleFormSubmit);
+        if (updateItem(id, updatedItem)) {
+            hideModal();
+            showNotification('Item updated successfully!', 'success');
+        }
     };
     
-    inventoryForm.addEventListener('submit', updateHandler);
+    // Add event listener for form submission
+    updateForm.addEventListener('submit', updateHandler);
 }
+
+// Add event listeners for modal controls
+closeUpdateModal.addEventListener('click', hideModal);
+cancelUpdate.addEventListener('click', hideModal);
+
+// Close modal when clicking outside
+updateModal.addEventListener('click', (e) => {
+    if (e.target === updateModal) {
+        hideModal();
+    }
+});
+
+// Close modal on escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !updateModal.classList.contains('hidden')) {
+        hideModal();
+    }
+});
 
 // This is for the search functionality
 function handleSearch(e) {
@@ -330,6 +353,7 @@ function handleSearch(e) {
     );
     renderInventory(filteredItems);
     updateInventoryStats(filteredItems);
+    updateDashboard(); // Add this to update dashboard with filtered data
 }
 
 // This is for the sort functionality
@@ -349,6 +373,7 @@ function handleSort(e) {
     });
     renderInventory(sortedItems);
     updateInventoryStats(sortedItems);
+    updateDashboard(); // Add this to update dashboard with sorted data
 }
 
 // This is for the clearing of the form
@@ -360,11 +385,10 @@ function clearForm() {
 
 // This is for the updating of the inventory statistics
 function updateInventoryStats(items = inventory) {
-    console.log('Updating stats - Items:', items.length);
-    totalItemsSpan.textContent = items.length;
+    // Remove references to removed elements but keep the calculation logic
+    // for other parts of the application that might need it
     const totalValue = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
-    totalValueSpan.textContent = `₱${totalValue.toFixed(2)}`;
-    console.log('Updated stats - Count:', items.length, 'Total Value:', totalValue);
+    return { totalItems: items.length, totalValue }; // Return values for other functions that might need them
 }
 
 // This is for the getting of the quantity status class
@@ -404,7 +428,120 @@ function showNotification(message, type = 'success') {
 // This is for the updating of the inventory display
 function updateInventoryDisplay() {
     renderInventory();
+    updateDashboard(); // Add this to ensure dashboard updates with inventory changes
+}
+
+// Dashboard Analytics
+function updateDashboard() {
+    // Update total items
+    const totalItems = inventory.length;
+    document.getElementById('dashboardTotalItems').textContent = totalItems;
+    
+    // Update total value
+    const totalValue = inventory.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    document.getElementById('dashboardTotalValue').textContent = `₱${totalValue.toFixed(2)}`;
+    
+    // Update low stock items (items with quantity < 10)
+    const lowStock = inventory.filter(item => item.quantity < 10).length;
+    document.getElementById('lowStockItems').textContent = lowStock;
+    
+    // Update average item value
+    const avgValue = totalItems > 0 ? totalValue / totalItems : 0;
+    document.getElementById('avgItemValue').textContent = `₱${avgValue.toFixed(2)}`;
+
+    // Update charts
+    updateCharts(inventory);
+}
+
+// Initialize and update charts
+function updateCharts(inventory) {
+    // Value Distribution Chart
+    const valueCtx = document.getElementById('valueDistributionChart').getContext('2d');
+    if (window.valueChart) window.valueChart.destroy();
+    
+    const valueData = inventory.map(item => ({
+        name: item.itemName,
+        value: item.quantity * item.unitPrice
+    })).sort((a, b) => b.value - a.value).slice(0, 5);
+
+    window.valueChart = new Chart(valueCtx, {
+        type: 'doughnut',
+        data: {
+            labels: valueData.map(item => item.name),
+            datasets: [{
+                data: valueData.map(item => item.value),
+                backgroundColor: [
+                    '#3B82F6',
+                    '#10B981',
+                    '#F59E0B',
+                    '#6366F1',
+                    '#EC4899'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            animation: {
+                duration: 750, // Add smooth animation
+                easing: 'easeInOutQuart'
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Top 5 Items by Value'
+                }
+            }
+        }
+    });
+
+    // Stock Level Chart
+    const stockCtx = document.getElementById('stockLevelChart').getContext('2d');
+    if (window.stockChart) window.stockChart.destroy();
+
+    const stockData = inventory.map(item => ({
+        name: item.itemName,
+        quantity: item.quantity
+    })).sort((a, b) => b.quantity - a.quantity).slice(0, 5);
+
+    window.stockChart = new Chart(stockCtx, {
+        type: 'bar',
+        data: {
+            labels: stockData.map(item => item.name),
+            datasets: [{
+                label: 'Quantity',
+                data: stockData.map(item => item.quantity),
+                backgroundColor: '#3B82F6',
+                borderColor: '#2563EB',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            animation: {
+                duration: 750, // Add smooth animation
+                easing: 'easeInOutQuart'
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Top 5 Items by Quantity'
+                }
+            }
+        }
+    });
 }
 
 // This is for the initial render
-renderInventory(); 
+renderInventory();
+updateDashboard(); // Initialize dashboard on page load
